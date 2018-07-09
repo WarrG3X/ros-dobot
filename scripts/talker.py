@@ -18,7 +18,7 @@ def talker():
         r = a*t
         msg.position.x = a*r*cos(t) + 180
         msg.position.y = a*r*sin(t) + 150
-        msg.position.z = -65
+        msg.position.z = 0
         pub.publish(msg)
         time.sleep(0.1)
         t += 0.1
