@@ -8,6 +8,7 @@
 #include "dobot/GetDeviceVersion.h"
 
 #include "dobot/SetEndEffectorParams.h"
+#include "dobot/SetEndEffectorGripper.h"
 #include "dobot/SetPTPJointParams.h"
 #include "dobot/SetPTPCoordinateParams.h"
 #include "dobot/SetPTPJumpParams.h"
@@ -19,17 +20,38 @@ void poseCallback(const geometry_msgs::Pose& msg)
 {
   ros::NodeHandle m;
   ros::ServiceClient client_sub;
+  ros::ServiceClient grip_sub;
   dobot::SetPTPCmd srv_s;
+  dobot::SetEndEffectorGripper srv_g;
 
   client_sub = m.serviceClient<dobot::SetPTPCmd>("/DobotServer/SetPTPCmd");
+  grip_sub = m.serviceClient<dobot::SetEndEffectorGripper>("/DobotServer/SetEndEffectorGripper");  
   ROS_INFO("I got a pose");
 
-  srv_s.request.ptpMode = 1;
-  srv_s.request.x = msg.position.x;
-  srv_s.request.y = msg.position.y;
-  srv_s.request.z = msg.position.z;
-  srv_s.request.r = msg.orientation.x;
-  client_sub.call(srv_s);   
+    if(msg.orientation.y == 0){
+        srv_s.request.ptpMode = 1;
+        srv_s.request.x = msg.position.x;
+        srv_s.request.y = msg.position.y;
+        srv_s.request.z = msg.position.z;
+        srv_s.request.r = msg.orientation.x;
+        client_sub.call(srv_s);
+        }
+    else{
+        ROS_INFO("Gripper Enable");
+        srv_g.request.enableCtrl = 1;
+        srv_g.request.grip = msg.orientation.z;
+        srv_g.request.isQueued = 0;
+        grip_sub.call(srv_g);
+        ros::Duration(0.5).sleep();
+        ROS_INFO("Gripper Disable");
+        srv_g.request.enableCtrl = 0;
+        srv_g.request.grip = msg.orientation.z;
+        srv_g.request.isQueued = 0;
+        grip_sub.call(srv_g);
+    }
+
+
+
  
 }
 
@@ -125,7 +147,7 @@ int main(int argc, char **argv)
     //client = n.serviceClient<dobot::SetPTPCmd>("/DobotServer/SetPTPCmd");
     //dobot::SetPTPCmd srv;
     
-    ros::Subscriber geom = n.subscribe("geometry_pose", 1000, poseCallback);
+    ros::Subscriber geom = n.subscribe("geometry_pose", 1, poseCallback);
     ros::spin();
 
 }
